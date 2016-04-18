@@ -9,12 +9,12 @@
 
 execfile("MancalaGUI.py")
 execfile("MancalaBoard.py")
-execfile("TicTacToe.py")
 
 from random import *
 from decimal import *
 from copy import *
 from MancalaBoard import *
+import time
 
 # a constant
 INFINITY = 1.0e400
@@ -113,14 +113,22 @@ class Player:
     # to improve on this function.
     def score(self, board):
         """ Returns the score for this player given the state of the board """
+        if board.hasWon(self.num):
+            return 100.0
+        elif board.hasWon(self.opp):
+            return 0.0
+        else:
+            return 50.0
+
+    # You should not modify anything before this point.
+    # The code you will add to this file appears below this line.
+
+    def heuristic(self, board):
+        """ Returns the score for this player given the state of the board """
         if self.num == 1:
             return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P1Cups) - sum(board.P2Cups))
         else:
             return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P2Cups) - sum(board.P1Cups))
-
-
-    # You should not modify anything before this point.
-    # The code you will add to this file appears below this line.
 
     # You will write this function (and any helpers you need)
     # You should write the function here in its simplest form:
@@ -200,6 +208,7 @@ class Player:
 
     def chooseMove(self, board):
         """ Returns the next move that this player wants to make """
+        start = time.time()
         if self.type == self.HUMAN:
             move = input("Please enter your move:")
             while not board.legalMove(self, move):
@@ -213,30 +222,29 @@ class Player:
         elif self.type == self.MINIMAX:
             val, move = self.minimaxMove(board, self.ply)
             print "chose move", move, " with value", val
+            end = time.time()
+            elapsed = end - start
+            print "MINIMAX time:", elapsed
             return move
         elif self.type == self.ABPRUNE:
             val, move = self.alphaBetaMove(board, self.ply)
-            # testBoard = deepcopy(board)
-            # val2, move2 = self.minimaxMove(testBoard, self.ply)
-            # print "ABRPUNE: chose move", move, " with value", val
-            # print "MINIMAX: chose move", move2, " with value", val2
-            # print "*******TEST: MOVE = ", move == move2, "SCORE = ", val == val2
+            end = time.time()
+            elapsed = end - start
+            print "ABRPRUNE time:", elapsed
             return move
         elif self.type == self.CUSTOM:
-            # TODO: Implement a custom player
-            # You should fill this in with a call to your best move choosing
-            # function.  You may use whatever search algorithm and scoring
-            # algorithm you like.  Remember that your player must make
-            # each move in about 10 seconds or less.
-            print "Custom player not yet implemented"
-            return -1
+            val, move = self.alphaBetaMove(board, self.ply)
+            end = time.time()
+            elapsed = end - start
+            print "CUSTOM time:", elapsed
+            return move
         else:
             print "Unknown player type"
             return -1
 
 
 # Note, you should change the name of this player to be your netid
-class MancalaPlayer(Player):
+class ldu917(Player):
     """ Defines a player that knows how to evaluate a Mancala gameboard
         intelligently """
 
@@ -245,10 +253,9 @@ class MancalaPlayer(Player):
         # Currently this function just calls Player's score
         # function.  You should replace the line below with your own code
         # for evaluating the board
-        print "Calling score in MancalaPlayer"
-        return Player.score(self, board)
+        return Player.heuristic(self, board)
 
 
-startGame(Player(1, Player.RANDOM), Player(2, Player.ABPRUNE, 3))
+startGame(ldu917(1, Player.RANDOM), ldu917(2, Player.CUSTOM, 10))
 # t = TTTBoard()
 # t.hostGame(Player(1, Player.RANDOM), Player(2, Player.ABPRUNE, 3))
