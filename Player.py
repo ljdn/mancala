@@ -27,7 +27,7 @@ class Player:
     ABPRUNE = 3
     CUSTOM = 4
     
-    def __init__(self, playerNum, playerType, ply=0):
+    def __init__(self, playerNum, playerType, ply=10):
         """Initialize a Player with a playerNum (1 or 2), playerType (one of
         the constants such as HUMAN), and a ply (default is 0)."""
         self.num = playerNum
@@ -123,13 +123,6 @@ class Player:
     # You should not modify anything before this point.
     # The code you will add to this file appears below this line.
 
-    def heuristic(self, board):
-        """ Returns the score for this player given the state of the board """
-        if self.num == 1:
-            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P1Cups) - sum(board.P2Cups))
-        else:
-            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P2Cups) - sum(board.P1Cups))
-
     # You will write this function (and any helpers you need)
     # You should write the function here in its simplest form:
     #   1. Use ply to determine when to stop (when ply == 0)
@@ -206,6 +199,22 @@ class Player:
             beta = min(beta, score)
         return score, move
 
+    def mostStones(self, board):
+        maxStones = -1
+        move = -1
+        if self.num == 1:
+            for m in board.legalMoves(self):
+                if maxStones < board.P1Cups[m-1]:
+                    maxStones = board.P1Cups[m-1]
+                    move = m
+        else:
+            for m in board.legalMoves(self):
+                if maxStones < board.P2Cups[m-1]:
+                    maxStones = board.P2Cups[m-1]
+                    move = m
+
+        return move
+
     def chooseMove(self, board):
         """ Returns the next move that this player wants to make """
         start = time.time()
@@ -231,31 +240,94 @@ class Player:
             end = time.time()
             elapsed = end - start
             print "ABRPRUNE time:", elapsed
+            print "chose move", move, " with value", val
             return move
         elif self.type == self.CUSTOM:
-            val, move = self.alphaBetaMove(board, self.ply)
-            end = time.time()
-            elapsed = end - start
-            print "CUSTOM time:", elapsed
-            return move
+            # if losing, choose random move with probability based on score difference (0, 20, 33, 42, or 50%)
+            scoreDiff = board.scoreCups[self.opp-1]-board.scoreCups[self.num-1]
+            rando = choice([1]*min(4,scoreDiff) + [0]*4)
+            if rando:
+                print "Uh oh, you're winning by", scoreDiff, "- I choose random!"
+                return choice(board.legalMoves(self))
+            else:
+                val, move = self.alphaBetaMove(board, self.ply)
+                end = time.time()
+                elapsed = end - start
+                print "CUSTOM time:", elapsed
+                print "chose move", move, " with value", val
+                return move
         else:
             print "Unknown player type"
             return -1
 
 
 # Note, you should change the name of this player to be your netid
-class ldu917(Player):
+class Sides(Player):
+    """ Defines a player that knows how to evaluate a Mancala gameboard
+        intelligently """
+    def score(self, board):
+        """ Evaluate the Mancala board for this player with the following heuristic:
+            (own mancala - opponent mancala) + (stones on own side - stones on opponent side)"""
+        if self.num == 1:
+            # Player is P1
+            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P1Cups) - sum(board.P2Cups))
+        else:
+            # Player is P2
+            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P2Cups) - sum(board.P1Cups))
+
+class EmptySides(Player):
+    """ Defines a player that knows how to evaluate a Mancala gameboard
+        intelligently """
+    def score(self, board):
+        """ Evaluate the Mancala board for this player with the following heuristic:
+            (own mancala - opponent mancala) + (stones on own side - stones on opponent side) + empty cups"""
+        if self.num == 1:
+            # Player is P1
+            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P1Cups) - sum(board.P2Cups)) + board.P1Cups.count(0) # + board.P2Cups.count(0)
+        else:
+            # Player is P2
+            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P2Cups) - sum(board.P1Cups)) + board.P2Cups.count(0) # + board.P1Cups.count(0)
+
+class WeightSides(Player):
+    """ Defines a player that knows how to evaluate a Mancala gameboard
+        intelligently """
+    def score(self, board):
+        """ Evaluate the Mancala board for this player with the following heuristic:
+            2*(own mancala - opponent mancala) + 3*(stones on own side - stones on opponent side)"""
+        if self.num == 1:
+            # Player is P1
+            return 2*(board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + 3*(sum(board.P1Cups) - sum(board.P2Cups))
+        else:
+            # Player is P2
+            return 2*(board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + 3*(sum(board.P2Cups) - sum(board.P1Cups))
+
+class Weight(Player):
     """ Defines a player that knows how to evaluate a Mancala gameboard
         intelligently """
 
+    def weightedCups(self, cupList, weightList):
+        """ Returns items in cupList weighted by weightList """
+        return [a*b for a,b in zip(cupList, weightList)]
+            
     def score(self, board):
-        """ Evaluate the Mancala board for this player """
-        # Currently this function just calls Player's score
-        # function.  You should replace the line below with your own code
-        # for evaluating the board
-        return Player.heuristic(self, board)
+        """ Evaluate the Mancala board for this player with the following heuristic:
+            (own mancala - opponent mancala) + (stones in cup) * (7 - cup distance to own mancala) - (stones on opponent side)"""
+        cupWeights = range(1, 7)
+        if self.num == 1:
+            # Player is P1
+            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + \
+                    (sum(self.weightedCups(board.P1Cups, cupWeights)) - sum(board.P2Cups))
+        else:
+            # Player is P2
+            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + \
+                    (sum(self.weightedCups(board.P2Cups, cupWeights)) - sum(board.P1Cups))
 
 
-startGame(ldu917(1, Player.RANDOM), ldu917(2, Player.CUSTOM, 10))
+p0 = Player(1, Player.RANDOM)
+p1 = Sides(1, Player.ABPRUNE, 5)
+p2 = WeightSides(2, Player.ABPRUNE, 5)
+p3 = EmptySides(2, Player.ABPRUNE, 5)
+# startGame(Player(1, Player.RANDOM), Sides(2, Player.CUSTOM, 10))
+# startGame(Player(1, Player.RANDOM), Weight(2, Player.CUSTOM, 10))
 # t = TTTBoard()
 # t.hostGame(Player(1, Player.RANDOM), Player(2, Player.ABPRUNE, 3))
