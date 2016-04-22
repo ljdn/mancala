@@ -199,22 +199,6 @@ class Player:
             beta = min(beta, score)
         return score, move
 
-    def mostStones(self, board):
-        maxStones = -1
-        move = -1
-        if self.num == 1:
-            for m in board.legalMoves(self):
-                if maxStones < board.P1Cups[m-1]:
-                    maxStones = board.P1Cups[m-1]
-                    move = m
-        else:
-            for m in board.legalMoves(self):
-                if maxStones < board.P2Cups[m-1]:
-                    maxStones = board.P2Cups[m-1]
-                    move = m
-
-        return move
-
     def chooseMove(self, board):
         """ Returns the next move that this player wants to make """
         start = time.time()
@@ -243,9 +227,9 @@ class Player:
             print "chose move", move, " with value", val
             return move
         elif self.type == self.CUSTOM:
-            # if losing, choose random move with probability based on score difference (0, 20, 33, 42, or 50%)
+            # if losing, choose random move with probability based on score difference
             scoreDiff = board.scoreCups[self.opp-1]-board.scoreCups[self.num-1]
-            rando = choice([1]*min(4,scoreDiff) + [0]*4)
+            rando = choice([1]*min(4,scoreDiff-1) + [0]*50)
             if rando:
                 print "Uh oh, you're winning by", scoreDiff, "- I choose random!"
                 return choice(board.legalMoves(self))
@@ -262,72 +246,16 @@ class Player:
 
 
 # Note, you should change the name of this player to be your netid
-class Sides(Player):
+class ldu917(Player):
     """ Defines a player that knows how to evaluate a Mancala gameboard
         intelligently """
     def score(self, board):
         """ Evaluate the Mancala board for this player with the following heuristic:
-            (own mancala - opponent mancala) + (stones on own side - stones on opponent side)"""
+            if P1: (own mancala - opponent mancala) + (stones on own side - stones on opponent side)
+            if P2: (own mancala - opponent mancala) + (stones on own side - stones on opponent side) + (empty cups on opponent side)"""
         if self.num == 1:
             # Player is P1
             return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P1Cups) - sum(board.P2Cups))
         else:
             # Player is P2
-            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P2Cups) - sum(board.P1Cups))
-
-class EmptySides(Player):
-    """ Defines a player that knows how to evaluate a Mancala gameboard
-        intelligently """
-    def score(self, board):
-        """ Evaluate the Mancala board for this player with the following heuristic:
-            (own mancala - opponent mancala) + (stones on own side - stones on opponent side) + empty cups"""
-        if self.num == 1:
-            # Player is P1
-            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P1Cups) - sum(board.P2Cups)) + board.P1Cups.count(0) # + board.P2Cups.count(0)
-        else:
-            # Player is P2
-            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P2Cups) - sum(board.P1Cups)) + board.P2Cups.count(0) # + board.P1Cups.count(0)
-
-class WeightSides(Player):
-    """ Defines a player that knows how to evaluate a Mancala gameboard
-        intelligently """
-    def score(self, board):
-        """ Evaluate the Mancala board for this player with the following heuristic:
-            2*(own mancala - opponent mancala) + 3*(stones on own side - stones on opponent side)"""
-        if self.num == 1:
-            # Player is P1
-            return 2*(board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + 3*(sum(board.P1Cups) - sum(board.P2Cups))
-        else:
-            # Player is P2
-            return 2*(board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + 3*(sum(board.P2Cups) - sum(board.P1Cups))
-
-class Weight(Player):
-    """ Defines a player that knows how to evaluate a Mancala gameboard
-        intelligently """
-
-    def weightedCups(self, cupList, weightList):
-        """ Returns items in cupList weighted by weightList """
-        return [a*b for a,b in zip(cupList, weightList)]
-            
-    def score(self, board):
-        """ Evaluate the Mancala board for this player with the following heuristic:
-            (own mancala - opponent mancala) + (stones in cup) * (7 - cup distance to own mancala) - (stones on opponent side)"""
-        cupWeights = range(1, 7)
-        if self.num == 1:
-            # Player is P1
-            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + \
-                    (sum(self.weightedCups(board.P1Cups, cupWeights)) - sum(board.P2Cups))
-        else:
-            # Player is P2
-            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + \
-                    (sum(self.weightedCups(board.P2Cups, cupWeights)) - sum(board.P1Cups))
-
-
-p0 = Player(1, Player.RANDOM)
-p1 = Sides(1, Player.ABPRUNE, 5)
-p2 = WeightSides(2, Player.ABPRUNE, 5)
-p3 = EmptySides(2, Player.ABPRUNE, 5)
-# startGame(Player(1, Player.RANDOM), Sides(2, Player.CUSTOM, 10))
-# startGame(Player(1, Player.RANDOM), Weight(2, Player.CUSTOM, 10))
-# t = TTTBoard()
-# t.hostGame(Player(1, Player.RANDOM), Player(2, Player.ABPRUNE, 3))
+            return (board.scoreCups[self.num-1] - board.scoreCups[self.opp-1]) + (sum(board.P2Cups) - sum(board.P1Cups)) + board.P1Cups.count(0) # + board.P1Cups.count(0)
