@@ -7,9 +7,6 @@
 # You will also define the score function in the MancalaPlayer class,
 # a subclass of the Player class.
 
-execfile("MancalaGUI.py")
-execfile("MancalaBoard.py")
-
 from random import *
 from decimal import *
 from copy import *
